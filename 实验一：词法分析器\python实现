@@ -1,4 +1,5 @@
 #用来完成编译原理第一章节词法分析实验报告
+import re
 class Stack:#构建栈
     def __init__(self):
         self.st=[]
@@ -18,8 +19,15 @@ id_array=['i','n','a']#存放标识符，单词种别码为6
 ci_array=[]#存放常数，单词种类码为5
 class word_analyse:
     def __init__(self):#初始化
-        self.sentence='if i=0 then n++;' \
-                      'a <= 3b %);'
+        self.sentence=''
+        f = open("context.txt", 'r')
+        while True:
+            line = f.readline()
+            if line:
+                self.sentence=self.sentence+line
+            else:
+                break
+        f.close()
     def read(self):#读取输入语句，将分好的单词寄存在nametoken，类型分在typetoken，位置放在position中
         self.nametoken = []  # 输入单词
         self.typetoken = []  # 和nametoken对应的单词种别
@@ -28,7 +36,7 @@ class word_analyse:
         while(len(self.sentence)!=0):
             if(self.sentence[0].isalpha()):
                 med = 0
-                while (self.sentence[med].isalpha()):#根据第一个字母来寻找关键字or标识符
+                while (self.sentence[med].isalnum()):#根据第一个字母来寻找关键字or标识符
                     stack.push(self.sentence[med])
                     med=med+1
                 if stack.return_string() in k_array:
@@ -37,8 +45,10 @@ class word_analyse:
                 elif stack.return_string() in id_array:
                     self.nametoken.append(stack.return_string())
                     self.typetoken.append(6)
-                    if stack.return_string() not in id_array:
-                        id_array.append(stack.return_string())
+                else:
+                    id_array.append(stack.return_string())
+                    self.nametoken.append(stack.return_string())
+                    self.typetoken.append(6)
                 stack.clear()
                 self.sentence = self.sentence[med:]
                 continue
@@ -47,7 +57,12 @@ class word_analyse:
                 while(not self.sentence[med].isspace()):
                     stack.push(self.sentence[med])
                     med=med+1
-                if stack.return_string().isdigit():
+                reg = re.compile(r'^[-+]?[0-9]+\.[0-9]+$')
+                res = reg.match(stack.return_string())
+                if res is True:
+                    self.nametoken.append(stack.return_string())
+                    self.typetoken.append(5)
+                elif 'e+' in stack.return_string() or 'e-' in stack.return_string():
                     self.nametoken.append(stack.return_string())
                     self.typetoken.append(5)
                 else:
@@ -55,6 +70,11 @@ class word_analyse:
                     self.typetoken.append('Error')
                 stack.clear()
                 self.sentence = self.sentence[med:]
+                continue
+            elif self.sentence[0:2]=='/*':   #消除注释
+                while(self.sentence[0:2]!='*/'):
+                    self.sentence=self.sentence[1:]
+                self.sentence=self.sentence[2:]
                 continue
             elif self.sentence[0].isspace():#清理空格
                 self.sentence=self.sentence[1:]
@@ -73,9 +93,11 @@ class word_analyse:
                     if stack.return_string() not in s_array[1]:
                         self.nametoken.append(stack.return_string())
                         self.typetoken.append('Error')
+
                     else:
                         self.nametoken.append(stack.return_string())
                         self.typetoken.append(3)
+
                     stack.clear()
                     self.sentence = self.sentence[med:]
                     continue
