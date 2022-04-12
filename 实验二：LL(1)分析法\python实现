@@ -1,0 +1,123 @@
+#用于编译原理第二个实验
+import string
+from tkinter import *
+class Stack:#构建栈
+    def __init__(self):
+        self.st=[]
+    def push(self,info):
+        self.st.append(info)
+    def pop(self):
+        return self.st.pop()
+    def isempty(self):
+        return len(self.st)==0
+    def size(self):
+        return len(self.st)
+    def show(self):
+        if len(self.st) != 0:
+            return self.st
+        else:
+            return ''
+    def reverse_show(self):
+        if len(self.st)!=0:
+            return list(reversed(self.st))
+        else:
+            return ''
+    def show_last_one(self):
+        if len(self.st)!=0:
+            return self.st[-1]
+    def clear(self):
+        self.st.clear()
+grammer={}#使用字典来存放语法
+vn=[]#非终结符号
+vt=[]#终结符号
+def deal():  # 优先级：两个栈互相匹配>互相不匹配时的调用return_number>化'e'
+    if ana_stack.show_last_one() == stack.show_last_one():  # 若两个栈互相匹配
+        ana_stack.pop()
+        stack.pop()
+        act_stack.push('pop')
+    else:  # 两个栈互相不匹配
+        if ana_stack.show_last_one() != 'e':
+            number = return_number(grammer[ana_stack.show_last_one()], stack.show_last_one())
+            med = ana_stack.pop()
+            act_stack.push('pop')
+            for i in reversed(grammer[med][number]):
+                ana_stack.push(i)
+            act_stack.push('PUSH({0})'.format(grammer[med][number]))
+            use_function_stack.push(('{0}->{1}').format(med, grammer[med][number]))
+        else:
+            ana_stack.pop()
+            if ana_stack.show_last_one() in vn:
+                act_stack.push('GETNExT({0})'.format(ana_stack.show_last_one()))
+                use_function_stack.push('{0}->e'.format(ana_stack.show_last_one()))
+def begin_input():  # 输入句子，使用栈来进行存储
+    bi = 'i+i*i#'
+    bi = list(reversed(bi))
+    ana_stack.push('#')
+    ana_stack.push(vn[0])
+    act_stack.push('初始化')
+    check = True
+    print(bi)
+    for i in bi:
+        if i not in vt + ['#']:
+            check = False
+            print('输入有误')
+            break
+        stack.push(i)
+    step = 0
+    out_put = "{0:<10}\t{1:<25}\t{2:<30}\t{3:<40}\t{4:<20}"
+    print(out_put.format("步骤", "分析栈", "剩余输入串", "所用产生式", "行为", chr(12288)))
+    while (not ana_stack.isempty() and check is True):
+        print(out_put.format(step, str(ana_stack.show()), str(stack.reverse_show()),
+                             str(use_function_stack.show()),
+                             str(act_stack.reverse_show()), chr(12288)))
+        act_stack.clear()
+        use_function_stack.clear()
+        try:
+            deal()
+        except KeyError:
+            print('Error,输入错误句子')
+            break
+        step = step + 1
+def read_text():#从文档中读
+    r=open("text.txt",'r')
+    line=r.readline()
+    while(line):
+        if '\n' in line:
+            line=line[:-1]
+        med=line.index('->')
+        if line[0] not in grammer.keys():
+            grammer[line[0]]=[line[med+2:]]
+        else:
+            grammer[line[0]].append(line[med+2:])
+        med = [i.split('|') for i in grammer[line[0]]]
+        grammer[line[0]] = [i for item in med for i in item]
+        line=r.readline()
+    r.close()
+def per_deal():#预处理，构建vt和vn
+    for i in grammer.keys():
+        vn.append(i)
+    for values in grammer.values():
+        for value in values:
+            for i in value:
+                if i not in string.ascii_uppercase:
+                    if i not in vt:
+                        vt.append(i)
+def return_number(list,aim_i):#返回字典中list中哪个元素含有i符号,如果有完全匹配，则返回其位置，如果i为终结符号，则判断是否不完全匹配，并返回其位置
+                              # 若都不存在，则返回-1表示没有匹配项（此时则取每个列表的最后一项）
+    med=-1
+    for item in list:
+        if aim_i in item:
+            med= list.index(item)#不完全匹配&完全匹配
+    return med
+if __name__=="__main__":
+    read_text()
+    per_deal()
+    print(grammer)
+    print(vt)  # 终结符号
+    print(vn)  # 非终结符
+    stack = Stack()
+    ana_stack = Stack()
+    use_function_stack = Stack()
+    act_stack = Stack()
+    ana_stack.show()
+    begin_input()
